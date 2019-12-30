@@ -1,0 +1,39 @@
+plugins {
+    id 'java'
+}
+
+group 'o.horbenko'
+version '1.0'
+
+sourceCompatibility = 1.8
+
+
+jar {
+    manifest {
+        attributes('Main-Class': 'o.horbenko.nnettysample.Main')
+    }
+    from {
+        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
+
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+
+    //  NETTY
+    compile group: 'io.netty', name: 'netty-all', version: '4.1.43.Final'
+
+    // log4j2
+    compile group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.1'
+    compile group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.1'
+
+    // lombok
+    compileOnly 'org.projectlombok:lombok:1.18.10'
+    annotationProcessor 'org.projectlombok:lombok:1.18.10'
+
+}
