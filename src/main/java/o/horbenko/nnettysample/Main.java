@@ -1,5 +1,7 @@
 package o.horbenko.nnettysample;
 
+import o.horbenko.nnettysample.bootstrap.NettyServerBootstrap;
+
 public class Main {
 
     public static void main(String[] args) {

@@ -1,4 +1,4 @@
-package o.horbenko.nnettysample;
+package o.horbenko.nnettysample.bootstrap;
 
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
@@ -11,11 +11,11 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
-import io.netty.handler.logging.LogLevel;
-import io.netty.handler.logging.LoggingHandler;
+import io.netty.util.concurrent.DefaultEventExecutorGroup;
 import io.netty.util.concurrent.DefaultThreadFactory;
+import io.netty.util.concurrent.EventExecutorGroup;
 import lombok.extern.log4j.Log4j2;
-import o.horbenko.nnettysample.handlers.HttpRequestHandlerHandler;
+import o.horbenko.nnettysample.handlers.RouterHttpRequestHandler;
 import o.horbenko.nnettysample.utils.OsCheck;
 
 import java.util.concurrent.ThreadFactory;
@@ -25,11 +25,19 @@ public class NettyServerBootstrap {
 
 
     /**
-     * The maximum queue length for incoming connection indications (a request to connect) is set to the backlog parameter.
+     * The maximum queue length for incoming connection indications (a request to connect)
+     * is set to the backlog parameter.
      * If a connection indication arrives when the queue is full, the connection is refused.
      */
     private static final int SO_BACKLOG_OPTION_VALUE = 1024;
     private static final boolean SO_KEEPALIVE_OPTION_VALUE = true;
+
+    /**
+     * {@see https://netty.io/4.1/api/io/netty/channel/ChannelPipeline.html}
+     * How many threads will be created for blocking operations via {@link #createNewEventExecutorGroup()}
+     */
+    private static final int BLOCKING_OPERATION_EXECUTION_THREADS_COUNT =
+            Runtime.getRuntime().availableProcessors() + 1;
 
 
     private final int serverPort;
@@ -39,7 +47,9 @@ public class NettyServerBootstrap {
     }
 
     /**
-     * option() "is for the NioServerSocketChannel that accepts incoming connections." Link: https://netty.io/wiki/user-guide-for-4.x.html#wiki-h2-2
+     * option() "is for the NioServerSocketChannel that accepts incoming connections."
+     * Link: https://netty.io/wiki/user-guide-for-4.x.html#wiki-h2-2
+     * <p>
      * childOption() is for the Channels accepted by the parent ServerChannel
      */
     public void runServer() {
@@ -53,7 +63,6 @@ public class NettyServerBootstrap {
                     .group(bossEventLoopGroup, workerEventLoopGroup)
                     .channel(getServerChannelClass())
                     .localAddress(serverPort)
-                    .handler(new LoggingHandler(LogLevel.WARN))
                     .childHandler(createChannelInitializer())
                     .option(ChannelOption.SO_BACKLOG, SO_BACKLOG_OPTION_VALUE)
                     .childOption(ChannelOption.SO_KEEPALIVE, SO_KEEPALIVE_OPTION_VALUE);
@@ -84,10 +93,9 @@ public class NettyServerBootstrap {
             protected void initChannel(SocketChannel socketChannel) throws Exception {
                 socketChannel
                         .pipeline()
-                        .addLast(new HttpServerCodec())
-                        .addLast(new HttpObjectAggregator(Integer.MAX_VALUE))
-                        .addLast(new LoggingHandler(LogLevel.DEBUG))
-                        .addLast(new HttpRequestHandlerHandler())
+                        .addLast("httpServerCodec", new HttpServerCodec())
+                        .addLast("httpAggregator", new HttpObjectAggregator(Integer.MAX_VALUE))
+                        .addLast(createNewEventExecutorGroup(), "requestRouterHandler", new RouterHttpRequestHandler())
                 ;
             }
         };
@@ -106,7 +114,7 @@ public class NettyServerBootstrap {
 
     private EventLoopGroup createNewEventLoopGroup(String eventLoopGroupName) {
 
-        int threadsCount = 0; // for AUTO CONFIGURATION
+        int threadsCount = 0;
         ThreadFactory thf = new DefaultThreadFactory(eventLoopGroupName);
 
         switch (OsCheck.getOperatingSystemType()) {
@@ -117,6 +125,12 @@ public class NettyServerBootstrap {
             default:
                 return new NioEventLoopGroup(threadsCount, thf);
         }
+    }
+
+
+    private EventExecutorGroup createNewEventExecutorGroup() {
+        ThreadFactory thf = new DefaultThreadFactory("blockingOps");
+        return new DefaultEventExecutorGroup(BLOCKING_OPERATION_EXECUTION_THREADS_COUNT, thf);
     }
 
 

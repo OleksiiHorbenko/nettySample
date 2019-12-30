@@ -1,18 +1,16 @@
 package o.horbenko.nettysample;
 
 import io.netty.buffer.Unpooled;
-import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.handler.codec.http.*;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
-import io.netty.util.ResourceLeakDetector;
-import o.horbenko.nnettysample.handlers.HttpRequestHandlerHandler;
+import o.horbenko.nnettysample.handlers.RouterHttpRequestHandler;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class HttpRequestHandlerHandlerTest {
+public class RouterHttpRequestHandlerTest {
 
     private EmbeddedChannel testChannel;
 
@@ -22,7 +20,7 @@ public class HttpRequestHandlerHandlerTest {
         testChannel
                 .pipeline()
                 .addLast(new LoggingHandler(LogLevel.TRACE))
-                .addLast(new HttpRequestHandlerHandler());
+                .addLast(new RouterHttpRequestHandler());
     }
 
     @Test

@@ -1,4 +1,5 @@
 POST http://localhost:8081/
+Content-Type: text/plain
 
 Hello world
 

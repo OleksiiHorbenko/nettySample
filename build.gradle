@@ -36,4 +36,7 @@ dependencies {
     compileOnly 'org.projectlombok:lombok:1.18.10'
     annotationProcessor 'org.projectlombok:lombok:1.18.10'
 
+    // db
+    compile 'io.r2dbc:r2dbc-h2:0.8.1.RELEASE'
+
 }
