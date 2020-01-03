@@ -29,37 +29,32 @@ public class RouterHttpRequestHandler extends SimpleChannelInboundHandler<FullHt
                 .addListener(ChannelFutureListener.CLOSE);
     }
 
-    private FullHttpResponse prepareOkHttpResponse(ByteBuf responseBody) {
-        FullHttpResponse response;
-
-        if (responseBody == null) {
-            response = new DefaultFullHttpResponse(
-                    HttpVersion.HTTP_1_1,
-                    HttpResponseStatus.OK);
-        } else {
-            response = new DefaultFullHttpResponse(
-                    HttpVersion.HTTP_1_1,
-                    HttpResponseStatus.OK,
-                    responseBody
-            );
-        }
-
-        return response;
-    }
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-//        super.exceptionCaught(ctx, cause);
-
         ctx.fireExceptionCaught(cause);
-        log.error("Exception caught. exception={}", cause);
+        log.error("Exception caught. exception.", cause);
 
         ctx
                 .channel()
                 .writeAndFlush(new DefaultFullHttpResponse(
                         HttpVersion.HTTP_1_1,
-                        HttpResponseStatus.INTERNAL_SERVER_ERROR)
-                )
+                        HttpResponseStatus.INTERNAL_SERVER_ERROR))
                 .addListener(ChannelFutureListener.CLOSE);
+    }
+
+
+    private FullHttpResponse prepareOkHttpResponse(ByteBuf responseBody) {
+
+        if (responseBody == null) {
+            return new DefaultFullHttpResponse(
+                    HttpVersion.HTTP_1_1,
+                    HttpResponseStatus.OK);
+        } else {
+            return new DefaultFullHttpResponse(
+                    HttpVersion.HTTP_1_1,
+                    HttpResponseStatus.OK,
+                    responseBody);
+        }
     }
 }

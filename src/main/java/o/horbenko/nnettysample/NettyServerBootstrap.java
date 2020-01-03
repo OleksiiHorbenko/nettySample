@@ -1,4 +1,4 @@
-package o.horbenko.nnettysample.bootstrap;
+package o.horbenko.nnettysample;
 
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
@@ -32,18 +32,19 @@ public class NettyServerBootstrap {
     private static final int SO_BACKLOG_OPTION_VALUE = 1024;
     private static final boolean SO_KEEPALIVE_OPTION_VALUE = true;
 
-    /**
-     * {@see https://netty.io/4.1/api/io/netty/channel/ChannelPipeline.html}
-     * How many threads will be created for blocking operations via {@link #createNewEventExecutorGroup()}
-     */
-    private static final int BLOCKING_OPERATION_EXECUTION_THREADS_COUNT =
-            Runtime.getRuntime().availableProcessors() + 1;
-
 
     private final int serverPort;
 
-    public NettyServerBootstrap(int serverPort) {
+    /**
+     * {@see https://netty.io/4.1/api/io/netty/channel/ChannelPipeline.html}
+     * How many threads will be created for blocking operations via {@link NettyServerBootstrap#createNewEventExecutorGroup()} ()} ()}
+     */
+    private final int blockingOperationsThreadsCount;
+
+    public NettyServerBootstrap(int serverPort,
+                                int blockingOperationsThreadsCount) {
         this.serverPort = serverPort;
+        this.blockingOperationsThreadsCount = blockingOperationsThreadsCount;
     }
 
     /**
@@ -54,7 +55,7 @@ public class NettyServerBootstrap {
      */
     public void runServer() {
 
-        EventLoopGroup bossEventLoopGroup = createNewEventLoopGroup("boss");        // boss threads handle connections and pass processing to worker threads
+        EventLoopGroup bossEventLoopGroup = createNewEventLoopGroup("boss");      // boss threads handle connections and pass processing to worker threads
         EventLoopGroup workerEventLoopGroup = createNewEventLoopGroup("worker");    // worker threads group
 
         try {
@@ -88,14 +89,16 @@ public class NettyServerBootstrap {
         }
     }
 
-    private ChannelInitializer createChannelInitializer() {
+    private ChannelInitializer<SocketChannel> createChannelInitializer() {
         return new ChannelInitializer<SocketChannel>() {
             protected void initChannel(SocketChannel socketChannel) throws Exception {
                 socketChannel
                         .pipeline()
                         .addLast("httpServerCodec", new HttpServerCodec())
                         .addLast("httpAggregator", new HttpObjectAggregator(Integer.MAX_VALUE))
-                        .addLast(createNewEventExecutorGroup(), "requestRouterHandler", new RouterHttpRequestHandler())
+                        .addLast(createNewEventExecutorGroup(),
+                                "requestRouterHandler",
+                                new RouterHttpRequestHandler())
                 ;
             }
         };
@@ -112,7 +115,7 @@ public class NettyServerBootstrap {
         }
     }
 
-    private EventLoopGroup createNewEventLoopGroup(String eventLoopGroupName) {
+    protected EventLoopGroup createNewEventLoopGroup(String eventLoopGroupName) {
 
         int threadsCount = 0;
         ThreadFactory thf = new DefaultThreadFactory(eventLoopGroupName);
@@ -128,9 +131,9 @@ public class NettyServerBootstrap {
     }
 
 
-    private EventExecutorGroup createNewEventExecutorGroup() {
+    protected EventExecutorGroup createNewEventExecutorGroup() {
         ThreadFactory thf = new DefaultThreadFactory("blockingOps");
-        return new DefaultEventExecutorGroup(BLOCKING_OPERATION_EXECUTION_THREADS_COUNT, thf);
+        return new DefaultEventExecutorGroup(blockingOperationsThreadsCount, thf);
     }
 
 
