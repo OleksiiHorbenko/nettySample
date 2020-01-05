@@ -1,2 +1,3 @@
 rootProject.name = 'nettySample'
+include 'netty-client'
 

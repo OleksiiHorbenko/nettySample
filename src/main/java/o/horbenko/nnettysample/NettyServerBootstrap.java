@@ -11,6 +11,8 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
+import io.netty.handler.logging.LogLevel;
+import io.netty.handler.logging.LoggingHandler;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import io.netty.util.concurrent.EventExecutorGroup;
@@ -29,15 +31,17 @@ public class NettyServerBootstrap {
      * is set to the backlog parameter.
      * If a connection indication arrives when the queue is full, the connection is refused.
      */
-    private static final int SO_BACKLOG_OPTION_VALUE = 1024;
+    private static final int SO_BACKLOG_OPTION_VALUE = 128;
     private static final boolean SO_KEEPALIVE_OPTION_VALUE = true;
+
+    private static final int BOSS_EVENT_LOOP_GROUP_THREADS_COUNT = 1;
 
 
     private final int serverPort;
 
     /**
      * {@see https://netty.io/4.1/api/io/netty/channel/ChannelPipeline.html}
-     * How many threads will be created for blocking operations via {@link NettyServerBootstrap#createNewEventExecutorGroup()} ()} ()}
+     * How many threads will be created for blocking operations via {@link NettyServerBootstrap#createNewEventExecutorGroup()}
      */
     private final int blockingOperationsThreadsCount;
 
@@ -55,7 +59,7 @@ public class NettyServerBootstrap {
      */
     public void runServer() {
 
-        EventLoopGroup bossEventLoopGroup = createNewEventLoopGroup("boss");      // boss threads handle connections and pass processing to worker threads
+        EventLoopGroup bossEventLoopGroup = createNewEventLoopGroup("boss", BOSS_EVENT_LOOP_GROUP_THREADS_COUNT);      // boss threads handle connections and pass processing to worker threads
         EventLoopGroup workerEventLoopGroup = createNewEventLoopGroup("worker");    // worker threads group
 
         try {
@@ -63,11 +67,13 @@ public class NettyServerBootstrap {
             ServerBootstrap serverBootstrap = new ServerBootstrap()
                     .group(bossEventLoopGroup, workerEventLoopGroup)
                     .channel(getServerChannelClass())
+                    .handler(new LoggingHandler(LogLevel.DEBUG))
                     .localAddress(serverPort)
                     .childHandler(createChannelInitializer())
                     .option(ChannelOption.SO_BACKLOG, SO_BACKLOG_OPTION_VALUE)
                     .childOption(ChannelOption.SO_KEEPALIVE, SO_KEEPALIVE_OPTION_VALUE);
 
+            log.info("ServerBootstrap = {}", serverBootstrap);
 
             ChannelFuture channelFuture = serverBootstrap
                     .bind()
@@ -94,8 +100,13 @@ public class NettyServerBootstrap {
             protected void initChannel(SocketChannel socketChannel) throws Exception {
                 socketChannel
                         .pipeline()
-                        .addLast("httpServerCodec", new HttpServerCodec())
-                        .addLast("httpAggregator", new HttpObjectAggregator(Integer.MAX_VALUE))
+
+                        .addLast("httpServerCodec",
+                                new HttpServerCodec())
+
+                        .addLast("httpAggregator",
+                                new HttpObjectAggregator(Integer.MAX_VALUE))
+
                         .addLast(createNewEventExecutorGroup(),
                                 "requestRouterHandler",
                                 new RouterHttpRequestHandler())
@@ -115,9 +126,14 @@ public class NettyServerBootstrap {
         }
     }
 
-    protected EventLoopGroup createNewEventLoopGroup(String eventLoopGroupName) {
 
-        int threadsCount = 0;
+    protected EventLoopGroup createNewEventLoopGroup(String eventLoopGroupName) {
+        int threadsCount = 0; // AUTO CONFIGURATION
+        return createNewEventLoopGroup(eventLoopGroupName, threadsCount);
+    }
+
+    protected EventLoopGroup createNewEventLoopGroup(String eventLoopGroupName, int threadsCount) {
+
         ThreadFactory thf = new DefaultThreadFactory(eventLoopGroupName);
 
         switch (OsCheck.getOperatingSystemType()) {
@@ -132,7 +148,7 @@ public class NettyServerBootstrap {
 
 
     protected EventExecutorGroup createNewEventExecutorGroup() {
-        ThreadFactory thf = new DefaultThreadFactory("blockingOps");
+        ThreadFactory thf = new DefaultThreadFactory("blocking");
         return new DefaultEventExecutorGroup(blockingOperationsThreadsCount, thf);
     }
 

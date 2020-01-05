@@ -1,7 +1,6 @@
 package o.horbenko.nnettysample.handlers;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -20,9 +19,11 @@ public class RouterHttpRequestHandler extends SimpleChannelInboundHandler<FullHt
         log.debug("Consumed {}", msg.toString());
 
         ByteBuf content = msg.content();
+        log.debug("IS dirrect ByteBuf = {}", content.isDirect());
         log.debug("Content is {}", content.toString(StandardCharsets.UTF_8));
 
-        ByteBuf responseBody = Unpooled.copiedBuffer("Response", StandardCharsets.UTF_8);
+        ByteBuf responseBody = content.copy();
+        log.debug("Is response ByteBuf is direct = {}", responseBody.isDirect());
 
         ctx
                 .writeAndFlush(prepareOkHttpResponse(responseBody))
