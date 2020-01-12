@@ -1,21 +1,26 @@
 plugins {
     id 'java'
+    id "io.freefair.aspectj.post-compile-weaving" version "4.1.6"
 }
 
-group 'o.horbenko'
-version '1.0'
-
 sourceCompatibility = 1.8
-
+apply plugin: 'application'
 
 jar {
     manifest {
-        attributes('Main-Class': 'o.horbenko.nnettysample.Main')
+        attributes('Main-Class': javaMainClass)
     }
     from {
         configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
     }
 }
+
+
+
+application {
+    mainClassName = javaMainClass
+}
+
 
 
 repositories {
@@ -24,6 +29,8 @@ repositories {
 
 dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.12'
+
+    // AOP (AspectJ)
 
     //  NETTY
     compile group: 'io.netty', name: 'netty-all', version: '4.1.43.Final'
@@ -36,7 +43,12 @@ dependencies {
     compileOnly 'org.projectlombok:lombok:1.18.10'
     annotationProcessor 'org.projectlombok:lombok:1.18.10'
 
-    // DATABASE
+    // DI (JSR-330)
+    compile group: 'javax.inject', name: 'javax.inject', version: '1'
+    compile group: 'net.usikkert.kouinject', name: 'kouinject', version: '1.2'
+
+
+// DATABASE
     // - H2
     // -- R2DBC
     compile 'io.r2dbc:r2dbc-h2:0.8.1.RELEASE'
